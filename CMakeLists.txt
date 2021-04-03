@@ -1,0 +1,17 @@
+# CMake 最低版本号要求
+
+cmake_minimum_required (VERSION 2.8)
+
+# 项目信息
+
+project(mini_pwa) 
+set(CMAKE_BUILD_TYPE "Debug")
+
+include_directories(include)
+
+# add_subdirectory(3rd/yaml-cpp)
+
+# 指定生成目标
+
+add_executable(random_fit src/main.cpp)
+# target_link_libraries(random_fit yaml-cpp)
