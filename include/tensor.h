@@ -15,7 +15,20 @@ public:
       total_shape *= i;
     }
     this->ptr = (T *)malloc(total_shape * sizeof(T));
+    for (int i = 0; i < total_shape; i++) {
+      this->ptr[i] = 0;
+    }
   }
+  Tensor(int n) : shape({n}) {
+    int total_shape = 1;
+    for (auto i : shape) {
+      total_shape *= i;
+    }
+    this->ptr = (T *)malloc(total_shape * sizeof(T));
+    for (int i = 0; i < total_shape; i++) {
+      this->ptr[i] = 0;
+    }
+  };
   ~Tensor() { free(this->ptr); }
   T *ptr;
   Shape shape;

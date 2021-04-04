@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
   auto decs = new DecayChain({
       dec,
   });
+
   auto dg = new DecayGroup({
       decs,
   });
@@ -87,9 +88,11 @@ int main(int argc, char **argv) {
 
   vm.set_params({{"a_mass", 2.0}, {"a_width", 1.0}});
 
-  std::cout << dg->get_amp2s({
-                   {"[a->b+c]", d4},
-               })
+  std::cout << dg->get_amp2s(1,
+                             {
+                                 {"[a->b+c]", d4},
+                             })
+                   .ptr[0]
             << std::endl;
 
   vm.save_params("b.json");

@@ -15,7 +15,13 @@ public:
   BaseParticle(std::string name) : name(name), J(0), P(-1){};
   std::string name;
   virtual void init_params(VarManager *vm) {}
-  virtual std::complex<double> get_amp(Tensor<double> *m) { return 1.0; };
+  Tensor<std::complex<double>> get_amp(size_t n, Tensor<double> *data) {
+    Tensor<std::complex<double>> ret(n);
+    for (int i = 0; i < n; i++) {
+      ret.ptr[i] = 1.;
+    }
+    return ret;
+  };
   std::string to_string() { return this->name; }
 };
 
@@ -30,12 +36,16 @@ public:
     this->mass = vm->add_var(this->to_string() + "_mass");
     this->width = vm->add_var(this->to_string() + "_width");
   }
-  std::complex<double> get_amp(Tensor<double> *data) {
-    double m = data->ptr[0];
-    std::cout << m << std::endl;
-    double m0 = this->mass();
-    double g0 = this->width();
-    return 1. / std::complex(m0 * m0 - m * m, -m0 * g0);
+
+  Tensor<std::complex<double>> get_amp(size_t n, Tensor<double> *data) {
+    Tensor<std::complex<double>> ret(n);
+    for (int i = 0; i < n; i++) {
+      double m = data->ptr[i];
+      double m0 = this->mass();
+      double g0 = this->width();
+      ret.ptr[i] = 1. / std::complex(m0 * m0 - m * m, -m0 * g0);
+    }
+    return ret;
   };
 };
 
@@ -46,8 +56,12 @@ public:
   BaseParticle *core;
   std::vector<BaseParticle *> decay;
   virtual void init_params(VarManager *vm) {}
-  virtual std::complex<double> get_amp(DecayData *data) {
-    return data->angle->alpha->ptr[0];
+  virtual Tensor<std::complex<double>> get_amp(size_t n, DecayData *data) {
+    auto ret = Tensor<std::complex<double>>(n);
+    for (int i = 0; i < n; i++) {
+      ret.ptr[i] = data->angle->alpha->ptr[i];
+    }
+    return ret;
   };
   std::string to_string() {
     std::ostringstream ostr;
@@ -82,17 +96,27 @@ public:
     }
   }
 
-  virtual std::complex<double> get_amp(ChainData *data) {
-    std::complex<double> a = 1.0;
-    int idx = 0;
-    for (auto i : this->decays) {
-      std::cout << "a" << std::endl;
-      a *= i->core->get_amp(data->data_p[i->core->to_string()]) *
-           i->get_amp(data->data[idx]);
-      std::cout << "a" << std::endl;
-      idx += 1;
+  virtual Tensor<std::complex<double>> get_amp(size_t n, ChainData *data) {
+    Tensor<std::complex<double>> ret(n);
+    for (int i = 0; i < n; i++) {
+      ret.ptr[i] = 1.0;
     }
-    return a;
+    std::cout << ret.ptr[0] << std::endl;
+    for (int idx = 0; idx < this->decays.size(); idx++) {
+      auto i = this->decays[idx];
+      if (idx != 0) {
+        auto tmp1 = i->core->get_amp(n, data->data_p[i->core->to_string()]);
+        for (int j = 0; j < n; j++) {
+          ret.ptr[j] *= tmp1.ptr[j];
+        }
+      }
+      auto tmp2 = i->get_amp(n, data->data[idx]);
+      std::cout << tmp2.ptr[0] << std::endl;
+      for (int j = 0; j < n; j++) {
+        ret.ptr[j] *= tmp2.ptr[j];
+      }
+    }
+    return ret;
   };
 
   std::string to_string() {
@@ -127,18 +151,26 @@ public:
       i->init_params(vm);
     }
   }
-  virtual std::complex<double>
-  get_amp(std::map<std::string, ChainData *> data) {
-    std::complex<double> a = 0.0;
+  virtual Tensor<std::complex<double>>
+  get_amp(size_t n, std::map<std::string, ChainData *> data) {
+    Tensor<std::complex<double>> ret(n);
     for (auto i : this->decs) {
       auto s = i->to_string();
-      a += i->get_amp(data.at(s));
+      auto tmp = i->get_amp(n, data.at(s));
+      for (int j = 0; j < n; j++) {
+        ret.ptr[j] += tmp.ptr[j];
+      }
     }
-    return a;
+    return ret;
   };
-  virtual double get_amp2s(std::map<std::string, ChainData *> data) {
-    auto a = abs(this->get_amp(data));
-    return a * a;
+  virtual Tensor<double> get_amp2s(size_t n,
+                                   std::map<std::string, ChainData *> data) {
+    auto ret = Tensor<double>(n);
+    auto amp = this->get_amp(n, data);
+    for (int i = 0; i < n; i++) {
+      ret.ptr[i] = abs(amp.ptr[i]);
+    }
+    return ret;
   };
 };
 
