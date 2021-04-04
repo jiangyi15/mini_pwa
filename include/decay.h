@@ -89,7 +89,11 @@ class BaseDecayChain {
 public:
   BaseDecayChain(std::vector<BaseDecay *> decs) : decays(decs){};
   std::vector<BaseDecay *> decays;
+  std::function<double()> total_r = zeros_f;
+  std::function<double()> total_i = zeros_f;
   virtual void init_params(VarManager *vm) {
+    this->total_r = vm->add_var(this->to_string() + "total_r");
+    this->total_i = vm->add_var(this->to_string() + "total_i");
     for (auto i : this->decays) {
       i->init_params(vm);
       i->core->init_params(vm);
@@ -99,19 +103,17 @@ public:
   virtual Tensor<std::complex<double>> get_amp(size_t n, ChainData *data) {
     Tensor<std::complex<double>> ret(n);
     for (int i = 0; i < n; i++) {
-      ret.ptr[i] = 1.0;
+      ret.ptr[i] = std::complex(this->total_r(), this->total_i());
     }
-    std::cout << ret.ptr[0] << std::endl;
     for (int idx = 0; idx < this->decays.size(); idx++) {
       auto i = this->decays[idx];
-      if (idx != 0) {
+      if (idx != -1) {
         auto tmp1 = i->core->get_amp(n, data->data_p[i->core->to_string()]);
         for (int j = 0; j < n; j++) {
           ret.ptr[j] *= tmp1.ptr[j];
         }
       }
       auto tmp2 = i->get_amp(n, data->data[idx]);
-      std::cout << tmp2.ptr[0] << std::endl;
       for (int j = 0; j < n; j++) {
         ret.ptr[j] *= tmp2.ptr[j];
       }
@@ -168,7 +170,7 @@ public:
     auto ret = Tensor<double>(n);
     auto amp = this->get_amp(n, data);
     for (int i = 0; i < n; i++) {
-      ret.ptr[i] = abs(amp.ptr[i]);
+      ret.ptr[i] = norm(amp.ptr[i]);
     }
     return ret;
   };

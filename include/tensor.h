@@ -1,7 +1,7 @@
+#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
-
 #ifndef M_PWATENSOR_H_
 #define M_PWATENSOR_H_
 
@@ -33,6 +33,14 @@ public:
   T *ptr;
   Shape shape;
 };
+
+template <typename T>
+std::ostream &operator<<(std::ostream &os, const Tensor<T> &obj) {
+  os << "[";
+  os << obj.ptr[0];
+  os << "]";
+  return os;
+}
 
 typedef std::map<std::string, Tensor<double> *> MapTensor;
 

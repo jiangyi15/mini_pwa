@@ -21,7 +21,7 @@ public:
   VarManager() : vars(){};
   std::map<std::string, double> vars;
   std::function<double()> add_var(std::string name) {
-    auto iter = this->vars.find("123");
+    auto iter = this->vars.find(name);
     if (iter == vars.end()) {
       this->vars[name] = 1.0;
     }
@@ -34,6 +34,12 @@ public:
       if (iter != vars.end()) {
         this->vars[i.first] = i.second;
       }
+    }
+  }
+  void set_params(std::vector<double> new_vars) {
+    int idx = 0;
+    for (auto i : this->vars) {
+      this->vars[i.first] = new_vars[idx++];
     }
   }
 
