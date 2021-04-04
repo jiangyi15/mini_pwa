@@ -9,9 +9,9 @@ set(CMAKE_BUILD_TYPE "Debug")
 
 include_directories(include)
 
-# add_subdirectory(3rd/yaml-cpp)
+add_subdirectory(3rd/Minuit2)
 
 # 指定生成目标
 
 add_executable(random_fit src/main.cpp)
-# target_link_libraries(random_fit yaml-cpp)
+target_link_libraries(random_fit PUBLIC Minuit2::Minuit2)
