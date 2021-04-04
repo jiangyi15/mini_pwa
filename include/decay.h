@@ -12,7 +12,7 @@ class BaseParticle {
 public:
   int J, P;
   BaseParticle(std::string name, int J, int P) : name(name), J(J), P(P){};
-  BaseParticle(std::string name): name(name), J(0), P(-1) {};
+  BaseParticle(std::string name) : name(name), J(0), P(-1){};
   std::string name;
   virtual void init_params(VarManager *vm) {}
   virtual std::complex<double> get_amp(Tensor<double> *m) { return 1.0; };
@@ -23,7 +23,7 @@ const std::function<double()> zeros_f = [] { return 0.0; };
 
 class Particle : public BaseParticle {
 public:
-  Particle(std::string name) : BaseParticle(name) {};
+  Particle(std::string name) : BaseParticle(name){};
   std::function<double()> mass = zeros_f;
   std::function<double()> width = zeros_f;
   virtual void init_params(VarManager *vm) {

@@ -1,11 +1,10 @@
 # minimal application for partial wave analysis fit.
 
-build as 
+build as
 
 ```
-mkdir build 
-cd build 
+mkdir build
+cd build
 cmake ..
 make
 ```
-

@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 2.8)
 
 # 项目信息
 
-project(mini_pwa) 
+project(mini_pwa)
 set(CMAKE_BUILD_TYPE "Debug")
 
 include_directories(include)

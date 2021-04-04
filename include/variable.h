@@ -1,7 +1,7 @@
+#include <fstream>
 #include <functional>
 #include <map>
 #include <string>
-#include <fstream>
 #ifndef VARIABLE_H_
 #define VARIABLE_H_ 1
 
