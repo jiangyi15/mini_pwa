@@ -87,7 +87,10 @@ public:
 
 class BaseDecayChain {
 public:
-  BaseDecayChain(std::vector<BaseDecay *> decs) : decays(decs){};
+  BaseDecayChain(std::vector<BaseDecay *> decs) : decays(decs) {
+    this->top = decs[0]->core;
+  };
+  BaseParticle *top;
   std::vector<BaseDecay *> decays;
   std::function<double()> total_r = zeros_f;
   std::function<double()> total_i = zeros_f;
@@ -96,7 +99,9 @@ public:
     this->total_i = vm->add_var(this->to_string() + "total_i");
     for (auto i : this->decays) {
       i->init_params(vm);
-      i->core->init_params(vm);
+      if (i->core != this->top) {
+        i->core->init_params(vm);
+      }
     }
   }
 
@@ -107,10 +112,15 @@ public:
     }
     for (int idx = 0; idx < this->decays.size(); idx++) {
       auto i = this->decays[idx];
-      if (idx != -1) {
-        auto tmp1 = i->core->get_amp(n, data->data_p[i->core->to_string()]);
-        for (int j = 0; j < n; j++) {
-          ret.ptr[j] *= tmp1.ptr[j];
+      if (i->core != this->top) {
+        auto s = i->core->to_string();
+        if (data->data_p.find(s) != data->data_p.end()) {
+          auto tmp1 = i->core->get_amp(n, data->data_p[s]);
+          for (int j = 0; j < n; j++) {
+            ret.ptr[j] *= tmp1.ptr[j];
+          }
+        } else {
+          std::cout << s << " not found" << std::endl;
         }
       }
       auto tmp2 = i->get_amp(n, data->data[idx]);
@@ -158,9 +168,14 @@ public:
     Tensor<std::complex<double>> ret(n);
     for (auto i : this->decs) {
       auto s = i->to_string();
-      auto tmp = i->get_amp(n, data.at(s));
-      for (int j = 0; j < n; j++) {
-        ret.ptr[j] += tmp.ptr[j];
+      auto it = data.find(s);
+      if (it != data.end()) {
+        auto tmp = i->get_amp(n, data.at(s));
+        for (int j = 0; j < n; j++) {
+          ret.ptr[j] += tmp.ptr[j];
+        }
+      } else {
+        std::cout << s << "not found" << std::endl;
       }
     }
     return ret;

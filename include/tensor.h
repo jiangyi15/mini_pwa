@@ -8,6 +8,8 @@
 typedef std::vector<int> Shape;
 
 template <class T> class Tensor {
+  bool _has_init = true;
+
 public:
   Tensor(Shape shape) : shape(shape) {
     int total_shape = 1;
@@ -19,6 +21,7 @@ public:
       this->ptr[i] = 0;
     }
   }
+  Tensor(Shape shape, T *ptr) : shape(shape), ptr(ptr), _has_init(false) {}
   Tensor(int n) : shape({n}) {
     int total_shape = 1;
     for (auto i : shape) {
@@ -29,7 +32,26 @@ public:
       this->ptr[i] = 0;
     }
   };
-  ~Tensor() { free(this->ptr); }
+  Tensor<T> operator[](int n) {
+    Shape shape;
+    for (int i = 1; i < this->shape.size(); i++) {
+      shape.push_back(this->shape[i]);
+    }
+    return Tensor<T>(shape,
+                     this->ptr + n * this->total_shape() / this->shape[0]);
+  };
+  int total_shape() {
+    int total_shape = 1;
+    for (auto i : shape) {
+      total_shape *= i;
+    }
+    return total_shape;
+  }
+  ~Tensor() {
+    if (this->_has_init) {
+      free(this->ptr);
+    }
+  }
   T *ptr;
   Shape shape;
 };
