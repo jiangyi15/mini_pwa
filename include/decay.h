@@ -8,6 +8,7 @@
 #ifndef M_PWADECAY_H_
 #define M_PWADECAY_H_ 1
 
+#include "dfunction.h"
 class BaseParticle {
 public:
   int J, P;
@@ -51,10 +52,10 @@ public:
 
 class BaseDecay {
 public:
-  BaseDecay(BaseParticle *core, std::vector<BaseParticle *> decay)
-      : core(core), decay(decay){};
+  BaseDecay(BaseParticle *core, std::vector<BaseParticle *> outs)
+      : core(core), outs(outs){};
   BaseParticle *core;
-  std::vector<BaseParticle *> decay;
+  std::vector<BaseParticle *> outs;
   virtual void init_params(VarManager *vm) {}
   virtual Tensor<std::complex<double>> get_amp(size_t n, DecayData *data) {
     auto ret = Tensor<std::complex<double>>(n);
@@ -67,7 +68,7 @@ public:
     std::ostringstream ostr;
     ostr << this->core->to_string() << "->";
     int idx = 0;
-    for (auto i : this->decay) {
+    for (auto i : this->outs) {
       if (idx == 0) {
         ostr << i->to_string();
       } else {
@@ -81,8 +82,82 @@ public:
 
 class Decay : public BaseDecay {
 public:
-  Decay(BaseParticle *core, std::vector<BaseParticle *> decay)
-      : BaseDecay(core, decay){};
+  Decay(BaseParticle *core, std::vector<BaseParticle *> outs)
+      : BaseDecay(core, outs){};
+  virtual Tensor<std::complex<double>> get_amp(size_t n,
+                                               DecayData *data) override {
+    auto ret = this->get_d_matrix(n, data->angle);
+    auto h = this->get_helicity_amp(n, data->data_p);
+    int ja, jb, jc;
+    ja = this->core->J;
+    jb = this->outs[0]->J;
+    jc = this->outs[1]->J;
+    for (int i = 0; i < n; i++) {
+      for (int ma = -ja; ma <= ja; ma++) {
+        for (int mb = -jb; mb <= jb; mb++) {
+          for (int mc = -jc; mc <= jc; mc++) {
+            if (mb - mc <= ja) {
+              ret[i][ma + ja][mb + jb].ptr[mc + jc] *=
+                  h[i][mb + jb].ptr[mc + jc];
+            }
+          }
+        }
+      }
+    }
+    return ret;
+  };
+  Tensor<std::complex<double>> get_d_matrix(size_t n, EularAngle *data) {
+    int ja, jb, jc;
+    ja = this->core->J;
+    jb = this->outs[0]->J;
+    jc = this->outs[1]->J;
+    auto ret =
+        Tensor<std::complex<double>>({n, 2 * ja + 1, 2 * jb + 1, 2 * jc + 1});
+    auto w = small_d_weight(2 * ja);
+    auto d = small_d_function(2 * ja, &w, data->beta);
+    for (int i = 0; i < n; i++) {
+      double alpha = data->alpha->ptr[i];
+      double gamma = data->gamma->ptr[i];
+      for (int ma = -ja; ma <= ja; ma++) {
+        for (int mb = -jb; mb <= jb; mb++) {
+
+          for (int mc = -jc; mc <= jc; mc++) {
+            if (mb - mc <= ja) {
+              ret[i][ma + ja][mb + jb].ptr[mc + jc] =
+                  d[i][ma + ja].ptr[mb - mc + ja] *
+                  exp(std::complex(0., ma * alpha)) *
+                  exp(std::complex(0., (mb - mc) * gamma));
+            }
+          }
+        }
+      }
+    }
+    return ret;
+  }
+
+  std::vector<std::pair<int, int>> get_ls_list();
+
+  Tensor<std::complex<double>> get_ls_matrix();
+
+  Tensor<std::complex<double>> get_helicity_amp(size_t n, Tensor<double> *m) {
+    int ja, jb, jc;
+    ja = this->core->J;
+    jb = this->outs[0]->J;
+    jc = this->outs[1]->J;
+    auto ls_matrix = this->get_ls_matrix();
+    auto ret = Tensor<std::complex<double>>({n, 2 * jb + 1, 2 * jc + 1});
+    for (int i = 0; i < n; i++) {
+      for (int mb = -jb; mb <= jb; mb++) {
+        for (int mc = -jc; mc <= jc; mc++) {
+          ret[i][mb + jb].ptr[mc + jc] = 0;
+          for (int l = 0; l < this->get_ls_list().size(); l++) {
+            ret[i][mb + jb].ptr[mc + jc] += ls_matrix[mb + jb][mc + jc].ptr[l];
+          }
+        }
+      }
+    }
+    return ret;
+  }
 };
 
 class BaseDecayChain {
@@ -185,7 +260,7 @@ public:
     auto ret = Tensor<double>(n);
     auto amp = this->get_amp(n, data);
     for (int i = 0; i < n; i++) {
-      ret.ptr[i] = norm(amp.ptr[i]);
+      ret.ptr[i] = norm(amp.ptr[i]) + 1e-10;
     }
     return ret;
   };

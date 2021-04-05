@@ -45,13 +45,13 @@ int main(int argc, char **argv) {
   for (int i = 0; i < 1; i++) {
     y->ptr[i] = 1.0;
   }
-  auto d2 = new DecayData({x, x, x});
+  auto d2 = new DecayData({x, x, x}, x);
   auto d4 = new ChainData({{d2, d2}, {{"a", x}, {"r", x}}});
 
   auto data = std::map<std::string, ChainData *>({
       {"[a->r+d,r->b+c]", d4},
   });
-  auto d2_p = new DecayData({y, y, y});
+  auto d2_p = new DecayData({y, y, y}, y);
   auto d4_p = new ChainData({{d2_p, d2_p}, {{"a", y}, {"r", x}}});
 
   auto phsp = std::map<std::string, ChainData *>({

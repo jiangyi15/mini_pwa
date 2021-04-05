@@ -20,9 +20,12 @@ public:
 
 class DecayData {
 public:
-  DecayData(EularAngle *angle) : angle(angle){};
-  DecayData(EularAngle angle) : angle(&angle){};
+  DecayData(EularAngle *angle, Tensor<double> *data_p)
+      : angle(angle), data_p(data_p){};
+  DecayData(EularAngle angle, Tensor<double> *data_p)
+      : angle(&angle), data_p(data_p){};
   EularAngle *angle;
+  Tensor<double> *data_p;
 };
 
 class ChainData {
