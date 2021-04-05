@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   auto b = new Particle("b");
   auto c = new Particle("c");
   auto d = new Particle("d");
-  auto r = new Particle("r");
+  auto r = new Particle("r", 0, 1);
 
   auto dec1 = new Decay(a, {r, d});
   auto dec2 = new Decay(r, {b, c});
@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
 
   auto dfun = small_d_function(2, &w, x);
 
-  auto y = new Tensor<double>({1});
+  auto y = new Tensor<double>({100});
   for (int i = 0; i < 1; i++) {
-    y->ptr[i] = 1.0;
+    y->ptr[i] = sin(i);
   }
   auto d2 = new DecayData({x, x, x}, x);
   auto d4 = new ChainData({{d2, d2}, {{"a", x}, {"r", x}}});
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
       {"[a->r+d,r->b+c]", d4},
   });
   auto d2_p = new DecayData({y, y, y}, y);
-  auto d4_p = new ChainData({{d2_p, d2_p}, {{"a", y}, {"r", x}}});
+  auto d4_p = new ChainData({{d2_p, d2_p}, {{"a", y}, {"r", y}}});
 
   auto phsp = std::map<std::string, ChainData *>({
       {"[a->r+d,r->b+c]", d4_p},
@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
 
   amp.vm.set_params({{"r_mass", 2.0}, {"r_width", 1.0}});
 
-  amp.set_data(1, data);
-  amp.set_phsp(1, phsp);
+  amp.set_data(x->shape[0], data);
+  amp.set_phsp(y->shape[0], phsp);
 
   auto min = amp.minimize();
   std::cout << min << std::endl;

@@ -20,7 +20,8 @@ small_d_weight(int j) { //  the prefactor in the d-function of beta
   :return: Of the shape (**j** +1, **j** +1, **j** +1). The indices correspond
   to (:math:`l,m_1,m_2`)
   **/
-  auto ret = Tensor<double>({j + 1, j + 1, j + 1});
+  auto ret = Tensor<double>(
+      {(unsigned int)j + 1, (unsigned int)j + 1, (unsigned int)j + 1});
   auto size = j + 1;
 
   auto f = [](int x) { return factorial2(x >> 1); };
@@ -45,7 +46,7 @@ Tensor<double> small_d_function(int j, Tensor<double> *weight,
   /*
    */
   auto n = theta->shape[0];
-  auto size = j + 1;
+  auto size = (unsigned int)j + 1;
   Tensor<double> sincos({size, n});
   Tensor<double> ret({n, size, size});
   for (int i = 0; i < j + 1; i++) {

@@ -5,33 +5,24 @@
 #ifndef M_PWATENSOR_H_
 #define M_PWATENSOR_H_
 
-typedef std::vector<int> Shape;
+typedef std::vector<size_t> Shape;
 
 template <class T> class Tensor {
   bool _has_init = true;
 
 public:
-  Tensor(Shape shape) : shape(shape) {
-    int total_shape = 1;
-    for (auto i : shape) {
-      total_shape *= i;
-    }
+  void init_ptr() {
+    int total_shape = this->total_shape();
     this->ptr = (T *)malloc(total_shape * sizeof(T));
     for (int i = 0; i < total_shape; i++) {
       this->ptr[i] = 0;
     }
   }
+  Tensor(Shape shape) : shape(shape) { this->init_ptr(); }
+
   Tensor(Shape shape, T *ptr) : shape(shape), ptr(ptr), _has_init(false) {}
-  Tensor(int n) : shape({n}) {
-    int total_shape = 1;
-    for (auto i : shape) {
-      total_shape *= i;
-    }
-    this->ptr = (T *)malloc(total_shape * sizeof(T));
-    for (int i = 0; i < total_shape; i++) {
-      this->ptr[i] = 0;
-    }
-  };
+  Tensor(size_t n) : shape({n}) { this->init_ptr(); };
+
   Tensor<T> operator[](int n) {
     Shape shape;
     for (int i = 1; i < this->shape.size(); i++) {
@@ -51,6 +42,7 @@ public:
     if (this->_has_init) {
       free(this->ptr);
     }
+    this->_has_init = false;
   }
   T *ptr;
   Shape shape;
