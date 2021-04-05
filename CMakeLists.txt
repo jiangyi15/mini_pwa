@@ -15,5 +15,5 @@ add_subdirectory(3rd/Minuit2)
 
 # 指定生成目标
 
-add_executable(random_fit src/main.cpp)
+add_executable(random_fit src/main.cpp src/cg_coeff.cpp)
 target_link_libraries(random_fit PUBLIC Minuit2::Minuit2)

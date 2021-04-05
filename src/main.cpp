@@ -10,7 +10,11 @@
 #include "dfunction.h"
 #include "fcn.h"
 
+#include "cg_coeff.h"
+
 int main(int argc, char **argv) {
+
+  std::cout << "cg_coeff:" << cg_coeff2(2, 1, -2, 1, 1, -1) << std::endl;
 
   std::cout << "start";
   auto w = small_d_weight(2);
