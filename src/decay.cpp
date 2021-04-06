@@ -57,7 +57,8 @@ std::vector<std::pair<int, int>> Decay::get_ls_list() {
   pa = this->core->P;
   pb = this->outs[0]->P;
   pc = this->outs[1]->P;
-  return ::get_ls_list(ja, pa, jb, pb, jc, pc, this->p_break);
+  auto ret = ::get_ls_list(ja, pa, jb, pb, jc, pc, this->p_break);
+  return ret;
 }
 
 Tensor<std::complex<double>> Decay::get_ls_matrix() {
@@ -171,28 +172,25 @@ template <typename K, typename V> void print_map(std::map<K, V> &m) {
   std::cout << std::endl;
 }
 
-void small_transpose(ComplexTensor &a, size_t idx1, size_t idx2) {
+void small_transpose(std::shared_ptr<ComplexTensor> a, size_t idx1,
+                     size_t idx2) {
   /*
    * a[...,idx1,...,idx2,...] <=> a[..., idx2, ...., idx1, ...]
    *    n1  m1   n2  m2  n3          n1   m2    n2    m1   n3
    */
   if (idx1 == idx2)
     return;
-  size_t n1 = 1, n2 = 1, n3 = 1;
-  for (int i = 0; i < a.shape.size(); i++) {
+  int n1 = 1, n2 = 1, n3 = 1;
+  for (int i = 0; i < a->shape.size(); i++) {
     if (i < std::min(idx1, idx2)) {
-      n1 *= a.shape[i];
-    } else {
-      if (i > std::max(idx1, idx2)) {
-        n3 *= a.shape[i];
-      } else {
-        if (i != idx1 && i != idx2) {
-          n2 *= a.shape[i];
-        }
-      }
+      n1 *= a->shape[i];
+    } else if (i > std::max(idx1, idx2)) {
+      n3 *= a->shape[i];
+    } else if (i != idx1 && i != idx2) {
+      n2 *= a->shape[i];
     }
   }
-  auto m1 = a.shape[idx1], m2 = a.shape[idx2];
+  auto m1 = a->shape[idx1], m2 = a->shape[idx2];
 
   for (int i1 = 0; i1 < n1; i1++) {
     for (int i2 = 0; i2 < n2; i2++) {
@@ -201,9 +199,9 @@ void small_transpose(ComplexTensor &a, size_t idx1, size_t idx2) {
           for (int j2; j2 < m2; j2++) {
             auto p1 = i3 + n3 * (j2 + m2 * (i2 + n2 * (j1 + m1 * i1)));
             auto p2 = i3 + n3 * (j2 + m1 * (i2 + n2 * (j1 + m2 * i1)));
-            auto tmp = a.ptr[p1];
-            a.ptr[p1] = a.ptr[p2];
-            a.ptr[p2] = tmp;
+            auto tmp = a->ptr[p1];
+            a->ptr[p1] = a->ptr[p2];
+            a->ptr[p2] = tmp;
           }
         }
       }
@@ -230,8 +228,8 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
 
   std::map<std::string, size_t, std::less<std::string>> all_shape;
 
-  print_map(a.index);
-  print_map(b.index);
+  // print_map(a.index);
+  // print_map(b.index);
   for (auto i : a.index) {
     all_shape[i.first] = a.data->shape[i.second];
   }
@@ -246,10 +244,7 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
       sum_index = i.first;
   }
 
-  for (auto i : all_shape) {
-    std::cout << i.first << ":" << i.second << " ";
-  }
-  std::cout << std::endl;
+  // print_map(all_shape);
 
   std::vector<size_t> return_shape({n});
   std::map<std::string, size_t, std::less<std::string>> return_index;
@@ -356,7 +351,7 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
   }
 
   for (auto i : trans_index_need) {
-    small_transpose(*ret, i.first, i.second);
+    small_transpose(ret, i.first, i.second);
   }
 
   return std::shared_ptr<NamedTensor>(new NamedTensor(return_index, ret));

@@ -34,16 +34,16 @@ int main(int argc, char **argv) {
       decs,
   });
 
-  auto x = new Tensor<double>({1});
-  for (int i = 0; i < 1; i++) {
-    x->ptr[i] = 1.0;
+  auto x = new Tensor<double>({100});
+  for (int i = 0; i < x->total_shape(); i++) {
+    x->ptr[i] = sin(i);
   }
 
   auto dfun = small_d_function(2, &w, x);
 
   auto y = new Tensor<double>({100});
   for (int i = 0; i < 1; i++) {
-    y->ptr[i] = sin(i);
+    y->ptr[i] = 1.0;
   }
   auto d2 = new DecayData({x, x, x}, x);
   auto d4 = new ChainData({{d2, d2}, {{"a", x}, {"r", x}}});
@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
   AmplitudeModel amp(dg);
 
   amp.vm.set_params({{"r_mass", 2.0}, {"r_width", 1.0}});
+  amp.fix_params["r_width"] = 1.0;
 
   amp.set_data(x->shape[0], data);
   amp.set_phsp(y->shape[0], phsp);

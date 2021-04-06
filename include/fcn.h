@@ -10,38 +10,15 @@
 
 using namespace ROOT::Minuit2;
 
-class MyFCN : public FCNBase {
-public:
-  double operator()(const std::vector<double> &par) const {
-
-    double x = par[0];
-    double y = par[1];
-    double z = par[2];
-    double w = par[3];
-    double x0 = par[4];
-    double y0 = par[5];
-    double z0 = par[6];
-    double w0 = par[7];
-
-    return ((1. / 70.) * (21 * x * x + 20 * y * y + 19 * z * z - 14 * x * z -
-                          20 * y * z) +
-            w * w +
-            (1. / 70.) * (21 * x0 * x0 + 20 * y0 * y0 + 19 * z0 * z0 -
-                          14 * x0 * z0 - 20 * y0 * z0) +
-            w0 * w0);
-  }
-
-  double Up() const { return 1.; }
-};
-
 class AmplitudeModel : public FCNBase {
 public:
   AmplitudeModel(DecayGroup *decay_group)
-      : decay_group(decay_group), vm(), data(), phsp() {
+      : decay_group(decay_group), vm(), fix_params(), data(), phsp() {
     this->decay_group->init_params(&(this->vm));
   };
   DecayGroup *decay_group;
   VarManager vm;
+  std::map<std::string, double> fix_params;
   std::map<std::string, ChainData *> data;
   std::map<std::string, ChainData *> phsp;
   size_t n_data, n_phsp;
@@ -54,7 +31,7 @@ public:
     this->phsp = phsp;
   };
 
-  double operator()(const std::vector<double> &par) const {
+  double operator()(const std::vector<double> &par) const override {
     this->vm.set_params(par);
     auto amp = this->decay_group->get_amp2s(this->n_data, this->data);
     auto amp_mc = this->decay_group->get_amp2s(this->n_phsp, this->phsp);
@@ -72,7 +49,10 @@ public:
   FunctionMinimum minimize() {
     MnUserParameters upar;
     for (auto i : this->vm.vars) {
-      upar.Add(i.first, i.second, 0.1);
+      if (this->fix_params.find(i.first) != this->fix_params.end()) {
+      } else {
+        upar.Add(i.first, i.second, 0.1);
+      }
     }
     MnMigrad migrad(*this, upar);
     FunctionMinimum min = migrad();
