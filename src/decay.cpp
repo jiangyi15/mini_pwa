@@ -164,6 +164,53 @@ Tensor<std::complex<double>> Decay::get_helicity_amp(size_t n,
   return ret;
 }
 
+template <typename K, typename V> void print_map(std::map<K, V> &m) {
+  for (auto i : m) {
+    std::cout << i.first << ":" << i.second << " ";
+  }
+  std::cout << std::endl;
+}
+
+void small_transpose(ComplexTensor &a, size_t idx1, size_t idx2) {
+  /*
+   * a[...,idx1,...,idx2,...] <=> a[..., idx2, ...., idx1, ...]
+   *    n1  m1   n2  m2  n3          n1   m2    n2    m1   n3
+   */
+  if (idx1 == idx2)
+    return;
+  size_t n1 = 1, n2 = 1, n3 = 1;
+  for (int i = 0; i < a.shape.size(); i++) {
+    if (i < std::min(idx1, idx2)) {
+      n1 *= a.shape[i];
+    } else {
+      if (i > std::max(idx1, idx2)) {
+        n3 *= a.shape[i];
+      } else {
+        if (i != idx1 && i != idx2) {
+          n2 *= a.shape[i];
+        }
+      }
+    }
+  }
+  auto m1 = a.shape[idx1], m2 = a.shape[idx2];
+
+  for (int i1 = 0; i1 < n1; i1++) {
+    for (int i2 = 0; i2 < n2; i2++) {
+      for (int i3 = 0; i3 < n3; i3++) {
+        for (int j1 = 0; j1 < m1; j1++) {
+          for (int j2; j2 < m2; j2++) {
+            auto p1 = i3 + n3 * (j2 + m2 * (i2 + n2 * (j1 + m1 * i1)));
+            auto p2 = i3 + n3 * (j2 + m1 * (i2 + n2 * (j1 + m2 * i1)));
+            auto tmp = a.ptr[p1];
+            a.ptr[p1] = a.ptr[p2];
+            a.ptr[p2] = tmp;
+          }
+        }
+      }
+    }
+  }
+}
+
 std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
                                          NamedTensor &b) {
   /**
@@ -181,7 +228,10 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
    *
    */
 
-  std::map<std::string, size_t, std::greater<std::string>> all_shape;
+  std::map<std::string, size_t, std::less<std::string>> all_shape;
+
+  print_map(a.index);
+  print_map(b.index);
   for (auto i : a.index) {
     all_shape[i.first] = a.data->shape[i.second];
   }
@@ -202,7 +252,7 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
   std::cout << std::endl;
 
   std::vector<size_t> return_shape({n});
-  std::map<std::string, size_t> return_index;
+  std::map<std::string, size_t, std::less<std::string>> return_index;
   int idx = 1;
   for (auto i : all_shape) {
     if (i.first != sum_index) {
@@ -230,8 +280,6 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
     }
   }
 
-  std::cout << ne1 << ne2 << ne3 << nr << std::endl;
-
   auto ret = SharedTensor(new Tensor<std::complex<double>>(return_shape));
 
   for (int idx = 0; idx < n; idx++) {
@@ -239,6 +287,7 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
       for (int e2 = 0; e2 < ne2; e2++) {
         for (int e3 = 0; e3 < ne3; e3++) {
           int idx_ret = e1 * ne3 * ne2 + e2 * ne3 + e3;
+          (*ret)[idx].ptr[idx_ret] = 0.;
           for (int r = 0; r < nr; r++) {
             int idx_a = e1 * nr * ne2 + r * ne2 + e2;
             int idx_b = r * ne3 + e3;
@@ -249,6 +298,67 @@ std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
       }
     }
   }
+
+  // transpose to real_shape;
+  std::map<size_t, size_t, std::less<size_t>> trans_index;
+  std::map<size_t, size_t, std::less<size_t>> shape_index;
+  size_t ptr = 1;
+  for (auto i : a.index) {
+    if (i.first != sum_index) {
+      if (i.second < a.index[sum_index]) {
+        auto tmp = 1;
+        for (auto j : return_index) {
+          if (j.first == i.first) {
+            trans_index[ptr] = tmp;
+            shape_index[ptr++] = all_shape[i.first];
+          }
+          tmp++;
+        }
+      }
+    }
+  }
+  for (auto i : a.index) {
+    if (i.first != sum_index) {
+      if (i.second > a.index[sum_index]) {
+        auto tmp = 1;
+        for (auto j : return_index) {
+          if (j.first == i.first) {
+            trans_index[ptr] = tmp;
+            shape_index[ptr++] = all_shape[i.first];
+          }
+          tmp++;
+        }
+      }
+    }
+  }
+
+  size_t ptr_b = ptr;
+  for (auto i : b.index) {
+    if (i.first != sum_index) {
+      auto tmp = 1;
+      for (auto j : return_index) {
+        if (j.first == i.first) {
+          trans_index[ptr] = tmp;
+          shape_index[ptr++] = all_shape[i.first];
+        }
+        tmp++;
+      }
+    }
+  }
+
+  std::map<size_t, size_t, std::less<size_t>> trans_index_need;
+  for (auto i : trans_index) {
+    if (i.first != i.second) {
+      if (shape_index[i.first] != 1) {
+        trans_index_need[i.first] = i.second;
+      }
+    }
+  }
+
+  for (auto i : trans_index_need) {
+    small_transpose(*ret, i.first, i.second);
+  }
+
   return std::shared_ptr<NamedTensor>(new NamedTensor(return_index, ret));
 }
 
@@ -291,9 +401,8 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_decay(size_t n,
     }
     decay_amp[s] = std::shared_ptr<NamedTensor>(new NamedTensor(name, tmp));
   }
-
-  for (int idx = this->decays.size() - 1; idx >= 0;
-       idx--) { // need to keep the order(leaf first)
+  // need to keep the order(leaf first)
+  for (int idx = this->decays.size() - 1; idx >= 0; idx--) {
     auto i = this->decays[idx];
     auto tmp2 = decay_amp.at(i->core->to_string());
     for (int j = 0; j < i->outs.size(); j++) {
@@ -366,7 +475,7 @@ BaseDecayGroup::get_amp2s(size_t n, std::map<std::string, ChainData *> data) {
   for (auto i : this->decs[0]->outs)
     total_n *= 2 * (size_t)(i->J) + 1;
   for (int i = 0; i < n; i++) {
-    ret.ptr[i] = 0;
+    ret.ptr[i] = 0.;
     for (int j = 0; j < total_n; j++) {
       ret.ptr[i] += norm(amp.ptr[i * total_n + j]);
     }

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   auto b = new Particle("b");
   auto c = new Particle("c");
   auto d = new Particle("d");
-  auto r = new Particle("r", 0, 1);
+  auto r = new Particle("r", 1, -1);
 
   auto dec1 = new Decay(a, {r, d});
   auto dec2 = new Decay(r, {b, c});
