@@ -38,8 +38,6 @@ public:
                                                Tensor<double> *data) override;
 };
 
-typedef std::shared_ptr<Tensor<std::complex<double>>> SharedTensor;
-
 class BaseDecay {
 public:
   BaseDecay(BaseParticle *core, std::vector<BaseParticle *> outs)
@@ -48,7 +46,7 @@ public:
   std::vector<BaseParticle *> outs;
   virtual void init_params(VarManager *vm) {}
   virtual SharedTensor get_amp(size_t n, DecayData *data) {
-    auto ret = SharedTensor(new Tensor<std::complex<double>>(n));
+    auto ret = SharedTensor(new ComplexTensor(n));
     for (int i = 0; i < n; i++) {
       ret->ptr[i] = data->angle->alpha->ptr[i];
     }
@@ -89,8 +87,7 @@ public:
     }
   }
 
-  virtual std::shared_ptr<Tensor<std::complex<double>>>
-  get_amp(size_t n, DecayData *data) override;
+  virtual SharedTensor get_amp(size_t n, DecayData *data) override;
   Tensor<std::complex<double>> get_d_matrix(size_t n, EularAngle *data);
 
   std::vector<std::pair<int, int>> get_ls_list();
@@ -102,10 +99,22 @@ public:
 
 class BaseDecayChain {
 public:
-  BaseDecayChain(std::vector<BaseDecay *> decs) : decays(decs) {
+  BaseDecayChain(std::vector<BaseDecay *> decs) : decays(decs), outs() {
     this->top = decs[0]->core;
+    for (auto i : decs) {
+      for (auto j : i->outs) {
+        bool found = false;
+        for (auto k : decs) {
+          if (k->core == j)
+            found = true;
+        }
+        if (!found)
+          this->outs.push_back(j);
+      }
+    }
   };
   BaseParticle *top;
+  std::vector<BaseParticle *> outs;
   std::vector<BaseDecay *> decays;
   std::function<double()> total_r = zeros_f;
   std::function<double()> total_i = zeros_f;

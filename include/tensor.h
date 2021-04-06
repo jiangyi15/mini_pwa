@@ -1,5 +1,7 @@
+#include <complex>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 #ifndef M_PWATENSOR_H_
@@ -57,5 +59,14 @@ std::ostream &operator<<(std::ostream &os, const Tensor<T> &obj) {
 }
 
 typedef std::map<std::string, Tensor<double> *> MapTensor;
+typedef Tensor<std::complex<double>> ComplexTensor;
+
+typedef std::shared_ptr<ComplexTensor> SharedTensor;
+struct NamedTensor {
+  NamedTensor(std::map<std::string, size_t> index, SharedTensor data)
+      : index(index), data(data){};
+  std::map<std::string, size_t> index;
+  SharedTensor data;
+};
 
 #endif

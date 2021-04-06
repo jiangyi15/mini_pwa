@@ -164,27 +164,96 @@ Tensor<std::complex<double>> Decay::get_helicity_amp(size_t n,
   return ret;
 }
 
-SharedTensor combine_amp(size_t n, Tensor<std::complex<double>> &a,
-                         Tensor<std::complex<double>> &b) {
-  auto ret = SharedTensor(new Tensor<std::complex<double>>({
-      n,
-  }));
-  for (int i = 0; i < n; i++) {
-    ret->ptr[i] = a.ptr[i] * b.ptr[i];
-  }
-  return ret;
-}
-
-Tensor<std::complex<double>> BaseDecayChain::get_amp_particle(size_t n,
-                                                              ChainData *data) {
+std::shared_ptr<NamedTensor> combine_amp(size_t n, NamedTensor &a,
+                                         NamedTensor &b) {
   /**
    * Decay Chain Sum
    * a->r+d, r->b+c
    *
-   * A_r = A(lambda_r, extra1}
-   * A_a = B(lambda_a, lambda_r, extra2)
-   * A_a -> sum_r A_a A_r (lambda_a, extra1, extra2)
+   * A = A(lambda_a, extra1, lambda_r, extra2)
+   * B = B(lambda_r, extra3)
+   *
+   * ret -> sum_r A_a A_r (lambda_a, extra1, extra2)
+   *
+   * loop: B, lambda_r, extra3
+   *       A, lambda_a + extra1, lambda_r, extra2
+   * => sum(  r*n_e3 + e3 , i * (nr*n_e2) +  r*n_e2 + n_e2)
+   *
    */
+
+  std::map<std::string, size_t, std::greater<std::string>> all_shape;
+  for (auto i : a.index) {
+    all_shape[i.first] = a.data->shape[i.second];
+  }
+  std::string sum_index;
+  for (auto i : b.index) {
+    if (all_shape.find(i.first) != all_shape.end())
+      all_shape[i.first] =
+          std::max(b.data->shape[i.second], all_shape.at(i.first));
+    else
+      all_shape[i.first] = b.data->shape[i.second];
+    if (i.second == 1)
+      sum_index = i.first;
+  }
+
+  for (auto i : all_shape) {
+    std::cout << i.first << ":" << i.second << " ";
+  }
+  std::cout << std::endl;
+
+  std::vector<size_t> return_shape({n});
+  std::map<std::string, size_t> return_index;
+  int idx = 1;
+  for (auto i : all_shape) {
+    if (i.first != sum_index) {
+      return_shape.push_back(i.second);
+      return_index[i.first] = i.second;
+      idx++;
+    }
+  }
+
+  int ne1 = 1, ne2 = 1, nr, ne3 = 1;
+  nr = all_shape[sum_index];
+  for (auto i : b.index) {
+    if (i.first != sum_index) {
+      ne3 *= b.data->shape[i.second];
+    }
+  }
+  auto a_index = b.index[sum_index];
+
+  for (auto i : a.index) {
+    if (i.first != sum_index) {
+      if (i.second < a_index)
+        ne1 *= a.data->shape[i.second];
+      else
+        ne2 *= a.data->shape[i.second];
+    }
+  }
+
+  std::cout << ne1 << ne2 << ne3 << nr << std::endl;
+
+  auto ret = SharedTensor(new Tensor<std::complex<double>>(return_shape));
+
+  for (int idx = 0; idx < n; idx++) {
+    for (int e1 = 0; e1 < ne1; e1++) {
+      for (int e2 = 0; e2 < ne2; e2++) {
+        for (int e3 = 0; e3 < ne3; e3++) {
+          int idx_ret = e1 * ne3 * ne2 + e2 * ne3 + e3;
+          for (int r = 0; r < nr; r++) {
+            int idx_a = e1 * nr * ne2 + r * ne2 + e2;
+            int idx_b = r * ne3 + e3;
+            (*ret)[idx].ptr[idx_ret] +=
+                (*a.data)[idx].ptr[idx_a] * (*b.data)[idx].ptr[idx_b];
+          }
+        }
+      }
+    }
+  }
+  return std::shared_ptr<NamedTensor>(new NamedTensor(return_index, ret));
+}
+
+Tensor<std::complex<double>> BaseDecayChain::get_amp_particle(size_t n,
+                                                              ChainData *data) {
   Tensor<std::complex<double>> ret(n);
   for (int i = 0; i < n; i++) {
     ret.ptr[i] = std::complex(this->total_r(), this->total_i());
@@ -209,31 +278,30 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_particle(size_t n,
 
 Tensor<std::complex<double>> BaseDecayChain::get_amp_decay(size_t n,
                                                            ChainData *data) {
-  /**
-   * Decay Chain Sum
-   * a->r+d, r->b+c
-   *
-   * A_r = A(lambda_r, extra1}
-   * A_a = B(lambda_a, lambda_r, extra2)
-   * A_a -> sum_r A_a A_r (lambda_a, extra1, extra2)
-   */
 
-  std::map<std::string, SharedTensor> decay_amp;
+  std::map<std::string, std::shared_ptr<NamedTensor>> decay_amp;
+  std::map<std::string, std::map<std::string, int>> index;
   for (int idx = 0; idx < this->decays.size(); idx++) {
     auto i = this->decays[idx];
     auto s = i->core->to_string();
     auto tmp = i->get_amp(n, data->data[idx]);
-    decay_amp[s] = tmp;
+    auto name = std::map<std::string, size_t>{{i->core->to_string(), 1}};
+    for (int pi = 0; pi < i->outs.size(); pi++) {
+      name[i->outs[pi]->to_string()] = pi + 2;
+    }
+    decay_amp[s] = std::shared_ptr<NamedTensor>(new NamedTensor(name, tmp));
   }
 
-  for (int idx = this->decays.size() - 1; idx >= 0; idx--) {
+  for (int idx = this->decays.size() - 1; idx >= 0;
+       idx--) { // need to keep the order(leaf first)
     auto i = this->decays[idx];
     auto tmp2 = decay_amp.at(i->core->to_string());
     for (int j = 0; j < i->outs.size(); j++) {
       auto pi = i->outs[j];
-      auto it = decay_amp.find(pi->to_string());
+      auto si = pi->to_string();
+      auto it = decay_amp.find(si);
       if (it != decay_amp.end()) {
-        auto amp_i = decay_amp.at(pi->to_string());
+        auto amp_i = decay_amp.at(si);
         auto tmp = combine_amp(n, *tmp2, *amp_i);
         decay_amp[i->core->to_string()] = tmp;
       }
@@ -242,7 +310,7 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_decay(size_t n,
   auto ret2 = decay_amp[this->top->to_string()];
   Tensor<std::complex<double>> ret3(n);
   for (int i = 0; i < n; i++) {
-    ret3.ptr[i] = ret2->ptr[i];
+    ret3.ptr[i] = ret2->data->ptr[i];
   }
   return ret3;
 };
@@ -251,22 +319,36 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp(size_t n,
                                                      ChainData *data) {
   auto amp = this->get_amp_particle(n, data);
   auto amp2 = this->get_amp_decay(n, data);
-  Tensor<std::complex<double>> ret3(n);
+
+  std::vector<size_t> shape({n});
+  size_t total_n = 1;
+  for (auto i : this->outs) {
+    auto tmp = 2 * (size_t)(i->J) + 1;
+    total_n *= tmp;
+    shape.push_back(tmp);
+  }
+
+  Tensor<std::complex<double>> ret3(shape);
   for (int i = 0; i < n; i++) {
-    ret3.ptr[i] = amp.ptr[i] * amp2.ptr[i];
+    for (int j = 0; j < total_n; j++) {
+      ret3.ptr[i * total_n + j] = amp.ptr[i] * amp2.ptr[i * total_n + j];
+    }
   }
   return ret3;
 };
 
 Tensor<std::complex<double>>
 BaseDecayGroup::get_amp(size_t n, std::map<std::string, ChainData *> data) {
-  Tensor<std::complex<double>> ret(n);
+  std::vector<size_t> shape({n});
+  for (auto i : this->decs[0]->outs)
+    shape.push_back(2 * (size_t)(i->J) + 1);
+  Tensor<std::complex<double>> ret(shape);
   for (auto i : this->decs) {
     auto s = i->to_string();
     auto it = data.find(s);
     if (it != data.end()) {
       auto tmp = i->get_amp(n, data.at(s));
-      for (int j = 0; j < n; j++) {
+      for (int j = 0; j < ret.total_shape(); j++) {
         ret.ptr[j] += tmp.ptr[j];
       }
     } else {
@@ -280,8 +362,15 @@ Tensor<double>
 BaseDecayGroup::get_amp2s(size_t n, std::map<std::string, ChainData *> data) {
   auto ret = Tensor<double>(n);
   auto amp = this->get_amp(n, data);
+  size_t total_n = 1;
+  for (auto i : this->decs[0]->outs)
+    total_n *= 2 * (size_t)(i->J) + 1;
   for (int i = 0; i < n; i++) {
-    ret.ptr[i] = std::min(norm(amp.ptr[i]), 1e10);
+    ret.ptr[i] = 0;
+    for (int j = 0; j < total_n; j++) {
+      ret.ptr[i] += norm(amp.ptr[i * total_n + j]);
+    }
+    ret.ptr[i] = std::max(std::min(ret.ptr[i], 1e10), 1e-10);
   }
   std::cout << "amp" << ret << " " << amp << std::endl;
   return ret;
