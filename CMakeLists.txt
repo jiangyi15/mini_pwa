@@ -1,13 +1,12 @@
 # CMake 最低版本号要求
 
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.10)
 
 # 项目信息
 
-project(mini_pwa)
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+project(mini_pwa)
 
 add_compile_options(-fpermissive)
 
