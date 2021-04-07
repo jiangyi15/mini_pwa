@@ -22,8 +22,6 @@ class DecayData {
 public:
   DecayData(EularAngle *angle, Tensor<double> *data_p)
       : angle(angle), data_p(data_p){};
-  DecayData(EularAngle angle, Tensor<double> *data_p)
-      : angle(&angle), data_p(data_p){};
   EularAngle *angle;
   Tensor<double> *data_p;
 };
@@ -32,8 +30,6 @@ class ChainData {
 public:
   ChainData(std::vector<DecayData *> data, MapTensor data_p)
       : data(data), data_p(data_p){};
-  ChainData(std::pair<std::vector<DecayData *>, MapTensor> data)
-      : data(data.first), data_p(data.second){};
   std::vector<DecayData *> data;
   std::map<std::string, Tensor<double> *> data_p;
 };

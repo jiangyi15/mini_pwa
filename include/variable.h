@@ -2,6 +2,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <vector>
 #ifndef VARIABLE_H_
 #define VARIABLE_H_ 1
 

@@ -4,9 +4,11 @@ cmake_minimum_required (VERSION 3.10)
 
 # 项目信息
 
+project(mini_pwa)
+
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_STANDARD 17)
-project(mini_pwa)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_compile_options(-fpermissive)
 

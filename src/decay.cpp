@@ -16,7 +16,7 @@ Tensor<std::complex<double>> Particle::get_amp(size_t n, Tensor<double> *data) {
     double m = data->ptr[i];
     double m0 = this->mass();
     double g0 = this->width();
-    ret.ptr[i] = 1. / std::complex(m0 * m0 - m * m, -m0 * g0);
+    ret.ptr[i] = 1. / std::complex<double>(m0 * m0 - m * m, -m0 * g0);
   }
   return ret;
 };
@@ -106,8 +106,8 @@ Tensor<std::complex<double>> Decay::get_d_matrix(size_t n, EularAngle *data) {
           if (mb - mc <= ja) {
             ret[i][ma + ja][mb + jb].ptr[mc + jc] =
                 d[i][ma + ja].ptr[mb - mc + ja] *
-                exp(std::complex(0., ma * alpha)) *
-                exp(std::complex(0., (mb - mc) * gamma));
+                exp(std::complex<double>(0., ma * alpha)) *
+                exp(std::complex<double>(0., (mb - mc) * gamma));
           }
         }
       }
@@ -156,7 +156,8 @@ Tensor<std::complex<double>> Decay::get_helicity_amp(size_t n,
         ret[i][mb + jb].ptr[mc + jc] = 0.;
         for (int l = 0; l < this->get_ls_list().size(); l++) {
           ret[i][mb + jb].ptr[mc + jc] +=
-              std::complex(this->gls[l].first(), this->gls[l].second()) *
+              std::complex<double>(this->gls[l].first(),
+                                   this->gls[l].second()) *
               ls_matrix[mb + jb][mc + jc].ptr[l];
         }
       }
@@ -361,7 +362,7 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_particle(size_t n,
                                                               ChainData *data) {
   Tensor<std::complex<double>> ret(n);
   for (int i = 0; i < n; i++) {
-    ret.ptr[i] = std::complex(this->total_r(), this->total_i());
+    ret.ptr[i] = std::complex<double>(this->total_r(), this->total_i());
   }
 
   for (int idx = 0; idx < this->decays.size(); idx++) {
