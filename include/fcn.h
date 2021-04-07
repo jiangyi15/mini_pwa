@@ -6,6 +6,9 @@
 
 #include "Minuit2/FCNBase.h"
 
+#ifndef M_PWA_FCN_H
+#define M_PWA_FCN_H
+
 #include "decay.h"
 
 using namespace ROOT::Minuit2;
@@ -17,10 +20,12 @@ public:
     this->decay_group->init_params(&(this->vm));
   };
   DecayGroup *decay_group;
-  VarManager vm;
+  mutable VarManager vm;
   std::map<std::string, double> fix_params;
   std::map<std::string, ChainData *> data;
+  Tensor<double> *data_weight = nullptr;
   std::map<std::string, ChainData *> phsp;
+  Tensor<double> *phsp_weight = nullptr;
   size_t n_data, n_phsp;
   void set_data(size_t n, std::map<std::string, ChainData *> &data) {
     this->n_data = n;
@@ -31,32 +36,14 @@ public:
     this->phsp = phsp;
   };
 
-  double operator()(const std::vector<double> &par) const override {
-    this->vm.set_params(par);
-    auto amp = this->decay_group->get_amp2s(this->n_data, this->data);
-    auto amp_mc = this->decay_group->get_amp2s(this->n_phsp, this->phsp);
-    double nll = 0.0;
-    for (int i = 0; i < this->n_data; i++) {
-      nll += -log(amp.ptr[i]);
-    }
-    double int_mc = 0.0;
-    for (int i = 0; i < this->n_phsp; i++) {
-      int_mc += amp_mc.ptr[i];
-    }
-    return nll + this->n_data * log(int_mc / this->n_phsp);
-  }
+  double operator()(const std::vector<double> &par) const override;
 
-  FunctionMinimum minimize() {
-    MnUserParameters upar;
-    for (auto i : this->vm.vars) {
-      if (this->fix_params.find(i.first) != this->fix_params.end()) {
-      } else {
-        upar.Add(i.first, i.second, 0.1);
-      }
-    }
-    MnMigrad migrad(*this, upar);
-    FunctionMinimum min = migrad();
-    return min;
-  }
+  double get_n_phsp() const;
+
+  double get_integral() const;
+
+  FunctionMinimum minimize();
   virtual double Up() const override { return 1.0; };
 };
+
+#endif

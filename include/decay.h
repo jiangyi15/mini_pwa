@@ -17,7 +17,8 @@ public:
   BaseParticle(std::string name) : name(name), J(0), P(-1){};
   std::string name;
   virtual void init_params(VarManager *vm) {}
-  virtual Tensor<std::complex<double>> get_amp(size_t n, Tensor<double> *data);
+  virtual Tensor<std::complex<double>> get_amp(size_t n, Tensor<double> *m,
+                                               Tensor<double> *q);
   std::string to_string() { return this->name; }
 };
 
@@ -34,8 +35,8 @@ public:
     this->width = vm->add_var(this->to_string() + "_width");
   }
 
-  virtual Tensor<std::complex<double>> get_amp(size_t n,
-                                               Tensor<double> *data) override;
+  virtual Tensor<std::complex<double>> get_amp(size_t n, Tensor<double> *m,
+                                               Tensor<double> *q) override;
 };
 
 class BaseDecay {
@@ -45,7 +46,7 @@ public:
   BaseParticle *core;
   std::vector<BaseParticle *> outs;
   virtual void init_params(VarManager *vm) {}
-  virtual SharedTensor get_amp(size_t n, DecayData *data) {
+  virtual SharedTensor get_amp(size_t n, DecayData *data, Tensor<double> *m) {
     auto ret = SharedTensor(new ComplexTensor(n));
     for (int i = 0; i < n; i++) {
       ret->ptr[i] = data->angle->alpha->ptr[i];
@@ -87,14 +88,16 @@ public:
     }
   }
 
-  virtual SharedTensor get_amp(size_t n, DecayData *data) override;
+  virtual SharedTensor get_amp(size_t n, DecayData *data,
+                               Tensor<double> *m) override;
   Tensor<std::complex<double>> get_d_matrix(size_t n, EularAngle *data);
 
   std::vector<std::pair<int, int>> get_ls_list();
 
   Tensor<std::complex<double>> get_ls_matrix();
 
-  Tensor<std::complex<double>> get_helicity_amp(size_t n, Tensor<double> *m);
+  Tensor<std::complex<double>> get_helicity_amp(size_t n, Tensor<double> *m,
+                                                Tensor<double> *q);
 };
 
 class BaseDecayChain {

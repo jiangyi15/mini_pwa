@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
       {"[a->r+d,r->b+c]", d4},
   });
   auto d1_p = new EularAngle(y, y, y);
+
   auto d2_p = new DecayData(d1_p, y);
   auto d4_p = new ChainData({d2_p, d2_p}, {{"a", y}, {"r", y}});
 

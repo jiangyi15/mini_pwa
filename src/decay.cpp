@@ -1,8 +1,8 @@
 #include "decay.h"
 #include "cg_coeff.h"
 
-Tensor<std::complex<double>> BaseParticle::get_amp(size_t n,
-                                                   Tensor<double> *data) {
+Tensor<std::complex<double>> BaseParticle::get_amp(size_t n, Tensor<double> *m,
+                                                   Tensor<double> *q) {
   Tensor<std::complex<double>> ret(n);
   for (int i = 0; i < n; i++) {
     ret.ptr[i] = 1.;
@@ -10,13 +10,14 @@ Tensor<std::complex<double>> BaseParticle::get_amp(size_t n,
   return ret;
 };
 
-Tensor<std::complex<double>> Particle::get_amp(size_t n, Tensor<double> *data) {
+Tensor<std::complex<double>> Particle::get_amp(size_t n, Tensor<double> *m,
+                                               Tensor<double> *q) {
   Tensor<std::complex<double>> ret(n);
   for (int i = 0; i < n; i++) {
-    double m = data->ptr[i];
+    double mi = m->ptr[i];
     double m0 = this->mass();
     double g0 = this->width();
-    ret.ptr[i] = 1. / std::complex<double>(m0 * m0 - m * m, -m0 * g0);
+    ret.ptr[i] = 1. / std::complex<double>(m0 * m0 - mi * mi, -m0 * g0);
   }
   return ret;
 };
@@ -116,9 +117,9 @@ Tensor<std::complex<double>> Decay::get_d_matrix(size_t n, EularAngle *data) {
   return ret;
 }
 
-SharedTensor Decay::get_amp(size_t n, DecayData *data) {
+SharedTensor Decay::get_amp(size_t n, DecayData *data, Tensor<double> *m) {
   auto d = this->get_d_matrix(n, data->angle);
-  auto h = this->get_helicity_amp(n, data->data_p);
+  auto h = this->get_helicity_amp(n, data->data_p, m);
   int ja, jb, jc;
   ja = this->core->J;
   jb = this->outs[0]->J;
@@ -141,8 +142,8 @@ SharedTensor Decay::get_amp(size_t n, DecayData *data) {
   return ret;
 };
 
-Tensor<std::complex<double>> Decay::get_helicity_amp(size_t n,
-                                                     Tensor<double> *m) {
+Tensor<std::complex<double>>
+Decay::get_helicity_amp(size_t n, Tensor<double> *m, Tensor<double> *q) {
   int ja, jb, jc;
   ja = this->core->J;
   jb = this->outs[0]->J;
@@ -370,7 +371,8 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_particle(size_t n,
     auto s = i->core->to_string();
     if (i->core != this->top) {
       if (data->data_p.find(s) != data->data_p.end()) {
-        auto tmp1 = i->core->get_amp(n, data->data_p[s]);
+        auto tmp1 =
+            i->core->get_amp(n, data->data_p[s], data->data[idx]->data_p);
         for (int j = 0; j < n; j++) {
           ret.ptr[j] *= tmp1.ptr[j];
         }
@@ -390,7 +392,7 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_decay(size_t n,
   for (int idx = 0; idx < this->decays.size(); idx++) {
     auto i = this->decays[idx];
     auto s = i->core->to_string();
-    auto tmp = i->get_amp(n, data->data[idx]);
+    auto tmp = i->get_amp(n, data->data[idx], data->data_p[s]);
     auto name = std::map<std::string, size_t>{{i->core->to_string(), 1}};
     for (int pi = 0; pi < i->outs.size(); pi++) {
       name[i->outs[pi]->to_string()] = pi + 2;
