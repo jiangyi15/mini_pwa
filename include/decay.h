@@ -30,7 +30,7 @@ public:
       : BaseParticle(name, J, P){};
   std::function<double()> mass = zeros_f;
   std::function<double()> width = zeros_f;
-  virtual void init_params(VarManager *vm) {
+  virtual void init_params(VarManager *vm) override {
     this->mass = vm->add_var(this->to_string() + "_mass");
     this->width = vm->add_var(this->to_string() + "_width");
   }

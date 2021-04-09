@@ -17,8 +17,12 @@ Tensor<std::complex<double>> Particle::get_amp(size_t n, Tensor<double> *m,
     double mi = m->ptr[i];
     double m0 = this->mass();
     double g0 = this->width();
+    // if (i==0) std::cout << this->name <<" "<< mi <<" " << m0 << " " << g0 <<
+    // " ";
     ret.ptr[i] = 1. / std::complex<double>(m0 * m0 - mi * mi, -m0 * g0);
   }
+  // std::cout << ret << std::endl;
+  // exit(0);
   return ret;
 };
 

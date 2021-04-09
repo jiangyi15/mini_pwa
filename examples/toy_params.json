@@ -1,0 +1,18 @@
+{
+  "S_mass": 1.0,
+  "S_width": 0.05,
+  "R_mass": 1.0,
+  "R_width": 0.1,
+  "A->S.DS->B.C_total_0r": 1.593208560457262,
+  "A->S.DS->B.C_total_0i": 0.0,
+  "A->S.D_g_ls_0r": 1.0,
+  "A->S.D_g_ls_0i": 0.0,
+  "S->B.C_g_ls_0r": 1.0,
+  "S->B.C_g_ls_0i": 0.0,
+  "A->R.CR->B.D_total_0r": 0.1193709361286075,
+  "A->R.CR->B.D_total_0i": 0.6649200634780428,
+  "A->R.C_g_ls_0r": 1.0,
+  "A->R.C_g_ls_0i": 0.0,
+  "R->B.D_g_ls_0r": 1.0,
+  "R->B.D_g_ls_0i": 0.0
+}

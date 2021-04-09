@@ -10,14 +10,18 @@ set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_compile_options(-fpermissive)
+# add_compile_options(-fpermissive)
+add_subdirectory(3rd/Minuit2)
+add_subdirectory(3rd/cnpy)
 
 include_directories(include)
 
-add_subdirectory(3rd/Minuit2)
+
 
 # 指定生成目标
 add_library(mini_pwa src/cg_coeff.cpp src/decay.cpp src/dfunction.cpp src/variable.cpp src/fcn.cpp)
 add_executable(random_fit src/main.cpp)
+
+target_include_directories(random_fit PUBLIC 3rd/cnpy)
 target_link_libraries(mini_pwa PUBLIC Minuit2::Minuit2)
-target_link_libraries(random_fit PUBLIC mini_pwa)
+target_link_libraries(random_fit PUBLIC mini_pwa cnpy)

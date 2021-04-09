@@ -48,8 +48,14 @@ FunctionMinimum AmplitudeModel::minimize() {
   MnUserParameters upar;
   for (auto i : this->vm.vars) {
     if (this->fix_params.find(i.first) != this->fix_params.end()) {
+      upar.Add(i.first, this->fix_params[i.first]);
     } else {
-      upar.Add(i.first, i.second, 0.1);
+      if (this->bound.find(i.first) != this->bound.end()) {
+        auto bound = this->bound[i.first];
+        upar.Add(i.first, i.second, 0.1, bound.first, bound.second);
+      } else {
+        upar.Add(i.first, i.second, 0.1);
+      }
     }
   }
   MnMigrad migrad(*this, upar);

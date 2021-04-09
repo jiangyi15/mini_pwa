@@ -22,6 +22,7 @@ public:
   DecayGroup *decay_group;
   mutable VarManager vm;
   std::map<std::string, double> fix_params;
+  std::map<std::string, std::pair<double, double>> bound;
   std::map<std::string, ChainData *> data;
   Tensor<double> *data_weight = nullptr;
   std::map<std::string, ChainData *> phsp;

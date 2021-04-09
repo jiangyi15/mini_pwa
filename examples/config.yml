@@ -1,0 +1,43 @@
+decay:
+    A:
+    - [RBC, D]
+    - [RCD, B]
+    - [RBD, C]
+    RBC: [B, C]
+    RCD: [C, D]
+    RBD: [B, D]
+
+particle:
+    $top:
+        A:
+            J: 0
+            P: -1
+            m0: 1.86
+    $finals:
+        B:
+            J: 0
+            O: -1
+            m0: 0.5
+        C:
+            J: 0
+            O: -1
+            m0: 0.2
+        D:
+            J: 0
+            O: -1
+            m0: 0.2
+    RBC: [S]
+    RBD: [R]
+    RCD: []
+    S:
+        J: 1
+        P: -1
+        m0: 1.0
+        g0: 0.05
+        model: BW
+    R:
+        J: 1
+        P: -1
+        m0: 1.0
+        g0: 0.1
+        model: BW

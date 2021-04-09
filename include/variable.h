@@ -1,5 +1,6 @@
 #include <fstream>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -28,10 +29,12 @@ public:
       }
     }
   }
-  void set_params(std::vector<double> new_vars) {
+  void set_params(const std::vector<double> &new_vars) {
     int idx = 0;
+    // std::cout << "set";
     for (auto i : this->vars) {
       this->vars[i.first] = new_vars[idx++];
+      // std::cout << "\nset " << i.first << new_vars[idx-1];
     }
   }
 
