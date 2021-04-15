@@ -13,15 +13,15 @@ Tensor<std::complex<double>> BaseParticle::get_amp(size_t n, Tensor<double> *m,
 Tensor<std::complex<double>> Particle::get_amp(size_t n, Tensor<double> *m,
                                                Tensor<double> *q) {
   Tensor<std::complex<double>> ret(n);
+  double m0 = this->mass();
+  double g0 = this->width();
   for (int i = 0; i < n; i++) {
     double mi = m->ptr[i];
-    double m0 = this->mass();
-    double g0 = this->width();
     // if (i==0) std::cout << this->name <<" "<< mi <<" " << m0 << " " << g0 <<
     // " ";
     ret.ptr[i] = 1. / std::complex<double>(m0 * m0 - mi * mi, -m0 * g0);
   }
-  // std::cout << ret << std::endl;
+  // std::cout << ret << " "<< *m << " " << m0 << " " << g0 << std::endl;
   // exit(0);
   return ret;
 };
@@ -88,7 +88,6 @@ Tensor<std::complex<double>> Decay::get_ls_matrix() {
       }
     }
   }
-
   return ret;
 }
 
@@ -123,7 +122,7 @@ Tensor<std::complex<double>> Decay::get_d_matrix(size_t n, EularAngle *data) {
 
 SharedTensor Decay::get_amp(size_t n, DecayData *data, Tensor<double> *m) {
   auto d = this->get_d_matrix(n, data->angle);
-  auto h = this->get_helicity_amp(n, data->data_p, m);
+  auto h = this->get_helicity_amp(n, m, data->data_p);
   int ja, jb, jc;
   ja = this->core->J;
   jb = this->outs[0]->J;
@@ -155,16 +154,26 @@ Decay::get_helicity_amp(size_t n, Tensor<double> *m, Tensor<double> *q) {
   auto ls_matrix = this->get_ls_matrix();
   auto ret =
       Tensor<std::complex<double>>({n, 2 * (size_t)jb + 1, 2 * (size_t)jc + 1});
+  auto ls_list = this->get_ls_list();
   for (int i = 0; i < n; i++) {
     for (int mb = -jb; mb <= jb; mb++) {
       for (int mc = -jc; mc <= jc; mc++) {
         ret[i][mb + jb].ptr[mc + jc] = 0.;
-        for (int l = 0; l < this->get_ls_list().size(); l++) {
+        for (int l = 0; l < ls_list.size(); l++) {
           ret[i][mb + jb].ptr[mc + jc] +=
               std::complex<double>(this->gls[l].first(),
                                    this->gls[l].second()) *
-              ls_matrix[mb + jb][mc + jc].ptr[l];
+              ls_matrix[mb + jb][mc + jc].ptr[l] *
+              pow(q->ptr[i], ls_list[i].first);
         }
+      }
+    }
+  }
+  for (int i = 0; i < 1; i++) {
+    for (int mb = -jb; mb <= jb; mb++) {
+      for (int mc = -jc; mc <= jc; mc++) {
+        std::cout << ret[i][mb + jb].ptr[mc + jc] << " " << q->ptr[0]
+                  << std::endl;
       }
     }
   }
@@ -445,6 +454,7 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp(size_t n,
       ret3.ptr[i * total_n + j] = amp.ptr[i] * amp2.ptr[i * total_n + j];
     }
   }
+  std::cout << amp << " " << amp2 << " " << ret3 << std::endl;
   return ret3;
 };
 

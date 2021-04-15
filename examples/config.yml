@@ -1,11 +1,11 @@
 decay:
     A:
-    - [RBC, D]
-    - [RCD, B]
-    - [RBD, C]
-    RBC: [B, C]
-    RCD: [C, D]
-    RBD: [B, D]
+    - [RBC, D, has_bprime: False]
+    - [RCD, B, has_bprime: False]
+    - [RBD, C, has_bprime: False]
+    RBC: [B, C, has_bprime: False]
+    RCD: [C, D, has_bprime: False]
+    RBD: [B, D, has_bprime: False]
 
 particle:
     $top:
