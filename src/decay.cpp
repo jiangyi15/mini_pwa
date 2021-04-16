@@ -146,7 +146,7 @@ SharedTensor Decay::get_amp(size_t n, DecayData *data, Tensor<double> *m) {
 };
 
 Tensor<std::complex<double>>
-Decay::get_helicity_amp(size_t n, Tensor<double> *m, Tensor<double> *q) {
+Decay::get_helicity_amp(size_t n, Tensor<double> *m, Tensor<double> *q2) {
   int ja, jb, jc;
   ja = this->core->J;
   jb = this->outs[0]->J;
@@ -164,16 +164,8 @@ Decay::get_helicity_amp(size_t n, Tensor<double> *m, Tensor<double> *q) {
               std::complex<double>(this->gls[l].first(),
                                    this->gls[l].second()) *
               ls_matrix[mb + jb][mc + jc].ptr[l] *
-              pow(q->ptr[i], ls_list[i].first);
+              pow(sqrt(q2->ptr[i]), ls_list[i].first);
         }
-      }
-    }
-  }
-  for (int i = 0; i < 1; i++) {
-    for (int mb = -jb; mb <= jb; mb++) {
-      for (int mc = -jc; mc <= jc; mc++) {
-        std::cout << ret[i][mb + jb].ptr[mc + jc] << " " << q->ptr[0]
-                  << std::endl;
       }
     }
   }
@@ -454,7 +446,6 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp(size_t n,
       ret3.ptr[i * total_n + j] = amp.ptr[i] * amp2.ptr[i * total_n + j];
     }
   }
-  std::cout << amp << " " << amp2 << " " << ret3 << std::endl;
   return ret3;
 };
 
@@ -491,8 +482,12 @@ BaseDecayGroup::get_amp2s(size_t n, std::map<std::string, ChainData *> data) {
     for (int j = 0; j < total_n; j++) {
       ret.ptr[i] += norm(amp.ptr[i * total_n + j]);
     }
-    ret.ptr[i] = std::max(std::min(ret.ptr[i], 1e10), 1e-10);
+    if (std::isnan(ret.ptr[i])) {
+      ret.ptr[i] = 1e-10;
+    } else {
+      ret.ptr[i] = std::max(std::min(ret.ptr[i], 1e10), 1e-10);
+    }
   }
-  std::cout << "amp" << ret << " " << amp << std::endl;
+  std::cout << ret << std::endl;
   return ret;
 };

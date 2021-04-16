@@ -14,7 +14,9 @@ double AmplitudeModel::operator()(const std::vector<double> &par) const {
     }
   }
   double int_mc = this->get_integral();
-  return nll + this->n_data * log(int_mc / this->get_n_phsp());
+  double ret = nll + this->n_data * log(int_mc / this->get_n_phsp());
+  std::cout << "-lnL = " << ret << " " << int_mc << std::endl;
+  return ret;
 }
 
 double AmplitudeModel::get_n_phsp() const {
@@ -35,12 +37,14 @@ double AmplitudeModel::get_integral() const {
   if (this->phsp_weight == nullptr) {
     for (int i = 0; i < this->n_phsp; i++) {
       int_mc += amp_mc.ptr[i];
+      // std::cout << i << " " << int_mc << std::endl;
     }
   } else {
     for (int i = 0; i < this->n_phsp; i++) {
       int_mc += this->phsp_weight->ptr[i] * amp_mc.ptr[i];
     }
   }
+  std::cout << int_mc << " " << amp_mc.ptr[1] << this->phsp_weight << std::endl;
   return int_mc;
 }
 

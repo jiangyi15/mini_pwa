@@ -97,12 +97,6 @@ int main() {
 
   AmplitudeModel amp(dg);
 
-  amp.vm.set_params({
-      {"r_width", 0.1},
-      {"s_width", 0.05},
-      {"[a->r+c,r->b+d]total_i", 0.6649200634780428},
-      {"[a->r+c,r->b+d]total_r", 0.1193709361286075},
-  });
   amp.fix_params["[a->s+d,s->b+c]total_i"] = 0.0;
   amp.fix_params["[a->s+d,s->b+c]total_r"] = 1.593208560457262;
   amp.fix_params["a->r+c_g_ls_0i"] = 0.0;
@@ -115,16 +109,24 @@ int main() {
   amp.fix_params["s->b+c_g_ls_0r"] = 1.0;
   amp.fix_params["r_mass"] = 1.0;
   amp.fix_params["s_mass"] = 1.0;
+  amp.fix_params["r_width"] = 0.1;
   amp.bound["s_width"] = {0.001, 0.2};
-
+  // amp.bound["r_width"] = {0.001, 0.2};
   amp.vm.set_params(amp.fix_params);
+  amp.vm.set_params({
+      {"r_width", 0.1},
+      {"s_width", 0.05},
+      {"[a->r+c,r->b+d]total_i", 0.6649200634780428},
+      {"[a->r+c,r->b+d]total_r", 0.1193709361286075},
+  });
 
   amp.set_data(npz1["particle/C/m"].shape[0], toy);
   amp.set_phsp(npz2["particle/C/m"].shape[0], phsp);
 
   amp.vm.save_params("init_params.json");
   auto ai = amp.decay_group->get_amp2s(npz1["particle/C/m"].shape[0], toy);
-  // auto min = amp.minimize();
   std::cout << ai << std::endl;
+  auto min = amp.minimize();
+  std::cout << min << std::endl;
   return 0;
 }
