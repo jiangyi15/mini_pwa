@@ -112,6 +112,8 @@ Tensor<std::complex<double>> Decay::get_d_matrix(size_t n, EularAngle *data) {
                 d[i][ma + ja].ptr[mb - mc + ja] *
                 exp(std::complex<double>(0., ma * alpha)) *
                 exp(std::complex<double>(0., (mb - mc) * gamma));
+          } else {
+            ret[i][ma + ja][mb + jb].ptr[mc + jc] = 0.0;
           }
         }
       }
@@ -155,16 +157,17 @@ Decay::get_helicity_amp(size_t n, Tensor<double> *m, Tensor<double> *q2) {
   auto ret =
       Tensor<std::complex<double>>({n, 2 * (size_t)jb + 1, 2 * (size_t)jc + 1});
   auto ls_list = this->get_ls_list();
+
   for (int i = 0; i < n; i++) {
     for (int mb = -jb; mb <= jb; mb++) {
       for (int mc = -jc; mc <= jc; mc++) {
         ret[i][mb + jb].ptr[mc + jc] = 0.;
         for (int l = 0; l < ls_list.size(); l++) {
-          ret[i][mb + jb].ptr[mc + jc] +=
-              std::complex<double>(this->gls[l].first(),
-                                   this->gls[l].second()) *
-              ls_matrix[mb + jb][mc + jc].ptr[l] *
-              pow(sqrt(q2->ptr[i]), ls_list[i].first);
+          auto tmp = std::complex<double>(this->gls[l].first(),
+                                          this->gls[l].second()) *
+                     ls_matrix[mb + jb][mc + jc].ptr[l] *
+                     pow(sqrt(q2->ptr[i]), ls_list[l].first);
+          ret[i][mb + jb].ptr[mc + jc] += tmp;
         }
       }
     }
@@ -424,6 +427,7 @@ Tensor<std::complex<double>> BaseDecayChain::get_amp_decay(size_t n,
   for (int i = 0; i < n; i++) {
     ret3.ptr[i] = ret2->data->ptr[i];
   }
+
   return ret3;
 };
 
@@ -488,6 +492,6 @@ BaseDecayGroup::get_amp2s(size_t n, std::map<std::string, ChainData *> data) {
       ret.ptr[i] = std::max(std::min(ret.ptr[i], 1e10), 1e-10);
     }
   }
-  std::cout << ret << std::endl;
+  // std::cout << ret << std::endl;
   return ret;
 };

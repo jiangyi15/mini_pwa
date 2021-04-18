@@ -120,12 +120,19 @@ int main() {
       {"[a->r+c,r->b+d]total_r", 0.1193709361286075},
   });
 
-  amp.set_data(npz1["particle/C/m"].shape[0], toy);
-  amp.set_phsp(npz2["particle/C/m"].shape[0], phsp);
+  auto n_data = npz1["particle/C/m"].shape[0];
+  auto n_phsp = npz2["particle/C/m"].shape[0];
+  std::cout << "n_data: " << n_data << " n_phsp: " << n_phsp << std::endl;
+
+  amp.set_data(n_data, toy);
+  amp.set_phsp(n_phsp, phsp);
 
   amp.vm.save_params("init_params.json");
   auto ai = amp.decay_group->get_amp2s(npz1["particle/C/m"].shape[0], toy);
-  std::cout << ai << std::endl;
+  for (int i = 0; i < 10; i++) {
+    std::cout << ai.ptr[i] << ", ";
+  }
+  std::cout << std::endl;
   auto min = amp.minimize();
   std::cout << min << std::endl;
   return 0;
