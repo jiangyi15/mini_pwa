@@ -25,3 +25,5 @@ add_executable(random_fit src/main.cpp)
 target_include_directories(random_fit PUBLIC 3rd/cnpy)
 target_link_libraries(mini_pwa PUBLIC Minuit2::Minuit2)
 target_link_libraries(random_fit PUBLIC mini_pwa cnpy)
+
+add_subdirectory(test)
